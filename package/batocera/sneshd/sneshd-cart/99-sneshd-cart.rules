@@ -1,0 +1,4 @@
+# Cart yank. SNES (no hyphen) is the NVMe extras volume — do not match it.
+# Sinden is USB video, not btrfs, so it cannot fire these rules.
+SUBSYSTEM=="block", ENV{ID_FS_TYPE}=="btrfs", ENV{ID_FS_LABEL}=="SNES-*", ACTION=="remove", RUN+="/usr/lib/sneshd/sneshd-cart-yank"
+SUBSYSTEM=="block", ENV{ID_FS_TYPE}=="btrfs", ENV{ID_FS_LABEL}=="SAVES", ACTION=="remove", RUN+="/usr/lib/sneshd/sneshd-cart-yank"

@@ -1,0 +1,66 @@
+include batocera-board.common
+
+# SNES-HD: Pi 5 console image. Hardware is BCM2712; image scripts live
+# under board/batocera/broadcom/sneshd/. Do not mutate stock bcm2712.
+
+# Target definition
+BR2_aarch64=y
+BR2_cortex_a76=y
+BR2_ARM_FPU_NEON_FP_ARMV8=y
+BR2_PACKAGE_BATOCERA_TARGET_BCM2712=y
+BR2_TARGET_BATOCERA_IMAGES="broadcom/sneshd"
+BR2_TARGET_GENERIC_HOSTNAME="SNES"
+BR2_TARGET_GENERIC_ISSUE="SNES-HD READY"
+BR2_TARGET_LOCALTIME="America/Chicago"
+BR2_TARGET_OPTIMIZATION="-pipe -fsigned-char -mcpu=cortex-a76 -mtune=cortex-a76"
+#BR2_TARGET_GENERIC_GETTY_PORT="tty1"
+BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/bcm2712/patches"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/sneshd/fsoverlay"
+BR2_TARGET_ROOTFS_SQUASHFS4_ZSTD=y
+
+# Linux headers same as kernel, a 6.18 series
+BR2_KERNEL_HEADERS_AS_KERNEL=y
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_18=y
+
+# Kernel - Version: 6.18.39 (stock Batocera Pi 5; custom SNES-HD-kernel is later)
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,raspberrypi,linux,820b5b663c24c6168d8aae4469ab490158a4b709)/820b5b663c24c6168d8aae4469ab490158a4b709.tar.gz"
+BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/bcm2712/linux-defconfig.config"
+BR2_LINUX_KERNEL_PATCH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/linux_patches"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/broadcom/linux-defconfig-fragment.config"
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+
+# Build the DTB from the kernel sources
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2712-rpi-500 broadcom/bcm2712-rpi-5-b broadcom/bcm2712d0-rpi-5-b broadcom/bcm2712-rpi-cm5-cm4io broadcom/bcm2712-rpi-cm5-cm5io broadcom/bcm2712-rpi-cm5l-cm4io broadcom/bcm2712-rpi-cm5l-cm5io"
+
+# rpi5 firmware
+BR2_PACKAGE_RPI_FIRMWARE=y
+BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI=y
+
+# gpu
+BR2_PACKAGE_BATOCERA_RPI_MESA3D=y
+BR2_PACKAGE_BATOCERA_WAYLAND_LABWC=y
+BR2_PACKAGE_BATOCERA_XWAYLAND=y
+
+# Static image splash. Plymouth / snes-load replaces this later.
+# Do not enable SPLASH_MPV — it pulls mpv + RPI_HEVC for a video we do not use.
+BR2_PACKAGE_BATOCERA_SPLASH_IMAGE=y
+
+# SNES-HD: no all-systems umbrella, no Kodi, no extras/codec stack
+BR2_PACKAGE_BATOCERA_ALL_SYSTEMS=n
+BR2_PACKAGE_BATOCERA_KODI21=n
+BR2_PACKAGE_BATOCERA_EXTRAS=n
+BR2_PACKAGE_BATOCERA_VIDEO_CODECS=n
+BR2_PACKAGE_ESPEAK=n
+BR2_PACKAGE_NFS_UTILS=n
+# Parent DMD package is gated; this board.common leftover must not stay =y
+BR2_PACKAGE_DMD_PLAY_RUST_DMD_PLAY_BIN=n
+# board.common lists vpinball/vita3k/dmdserver strip paths; none of those ship here
+BR2_STRIP_EXCLUDE_DIRS=""
+# mkfs.btrfs for transitional SHARE image (OS stays squash)
+BR2_PACKAGE_HOST_BTRFS_PROGS=y
+BR2_PACKAGE_BATOCERA_SNESHD=y

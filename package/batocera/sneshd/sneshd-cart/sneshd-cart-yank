@@ -1,0 +1,28 @@
+#!/bin/bash
+# Fail-closed: cart or SAVES yanked during a cart session → hard poweroff.
+# Does not run in admin mode (format / no cart). Sinden is not btrfs.
+
+. /usr/lib/sneshd/sneshd-common.sh
+
+yank_enabled || exit 0
+
+cart_label=$(awk -F= '/^CART_LABEL=/ {print $2; exit}' "$SNESHD_SESSION" 2>/dev/null || true)
+
+sync
+
+for mp in /media/SAVES /userdata /media/"${cart_label:-}" /media/SHARE /media/SNES; do
+    [ -n "$mp" ] || continue
+    mountpoint -q "$mp" 2>/dev/null && umount -l "$mp" 2>/dev/null || true
+done
+
+ES_PID=$(pidof emulationstation || true)
+if [ -n "$ES_PID" ]; then
+    kill -9 $ES_PID 2>/dev/null || true
+    for p in $ES_PID; do
+        ppid=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')
+        [ -n "$ppid" ] && [ "$ppid" -ne 1 ] && kill -9 "$ppid" 2>/dev/null || true
+    done
+fi
+
+poweroff -f
+echo o > /proc/sysrq-trigger 2>/dev/null || true

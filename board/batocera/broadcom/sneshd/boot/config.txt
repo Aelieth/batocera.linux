@@ -1,0 +1,53 @@
+# SNES-HD Pi 5 (Pimoroni NVMe Base + InnoMaker HiFi DAC)
+# Ported from the working Batocera 41 console config.
+
+# Load the 64-bit kernel
+arm_64bit=1
+
+# Run as fast as firmware / board allows
+arm_boost=1
+loglevel=0
+
+kernel=boot/linux
+initramfs boot/initrd.lz4
+
+# Uncomment some or all of these to enable the optional hardware interfaces
+#dtparam=i2c_arm=on
+
+# For enhanced audio output
+#dtparam=i2s=on
+#dtparam=spi=on
+
+# Pimoroni NVMe Base. Gen3 is opt-in — leave commented until the drive is proven.
+dtparam=pciex1
+#dtparam=pciex1_gen=3
+
+# Automatically load overlays for detected cameras
+#camera_auto_detect=1
+
+# Automatically load overlays for detected DSI displays
+display_auto_detect=1
+
+# Disable unused onboard devices. CSI camera only — USB UVC (Sinden) is unaffected.
+dtoverlay=disable-wifi
+dtoverlay=disable-camera
+dtoverlay=disable-bt
+
+# Better performance in emulators and latest graphics drivers
+max_framebuffers=2
+dtoverlay=vc4-kms-v3d
+
+# Underclock CPU and GPU for thermal and power (required for sustained 3x Mode 7)
+arm_freq=2200
+over_voltage=-1
+gpu_freq=500
+over_voltage_gpu=-1
+
+# Enable DRM VC4 V3D driver
+start_x=1
+
+# Burst the CPU at boot so the splash-to-ES path is short
+initial_turbo=20
+
+# InnoMaker HiFi DAC
+dtoverlay=allo-boss-dac-pcm512x-audio

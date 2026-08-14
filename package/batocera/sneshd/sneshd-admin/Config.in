@@ -1,0 +1,5 @@
+config BR2_PACKAGE_SNESHD_ADMIN
+	bool "sneshd-admin"
+	help
+	  SNES-HD admin tools: reset cart game options, restore host
+	  batocera.conf, and format a USB disk as a SNES-<id> cart.

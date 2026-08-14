@@ -118,6 +118,32 @@ define BATOCERA_SPLASH_INSTALL_VIDEO_CAPCOM
         "${TARGET_DIR}/usr/share/batocera/splash/splash.srt"
 endef
 
+# SNES-HD: last-console stills. No ImageMagick. Plymouth match is later.
+ifeq ($(BR2_PACKAGE_BATOCERA_SNESHD),y)
+BATOCERA_SPLASH_SNESHD_DIR = $(BR2_EXTERNAL_BATOCERA_PATH)/package/batocera/sneshd/sneshd-plymouth/splash
+
+define BATOCERA_SPLASH_INSTALL_IMAGE
+    mkdir -p $(TARGET_DIR)/usr/share/batocera/splash
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/logo.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/boot-logo.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/splash.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/splash.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-320x240.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-320x240.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-320x480.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-320x480.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-480x854.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-480x854.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-640x480.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-640x480.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-1280x720.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-1280x720.png
+    $(INSTALL) -m 0644 $(BATOCERA_SPLASH_SNESHD_DIR)/boot-logo-720x1280.png \
+        $(TARGET_DIR)/usr/share/batocera/splash/logo-version-720x1280.png
+endef
+else
 define BATOCERA_SPLASH_INSTALL_IMAGE
     mkdir -p $(TARGET_DIR)/usr/share/batocera/splash
     convert "$(BR2_EXTERNAL_BATOCERA_PATH)/package/batocera/core/batocera-splash/images/logo.png" \
@@ -139,5 +165,6 @@ define BATOCERA_SPLASH_INSTALL_IMAGE
         -fill white -pointsize 20 -annotate +40+440 "$(BATOCERA_SPLASH_TGVERSION)" \
         "${TARGET_DIR}/usr/share/batocera/splash/logo-version-640x480-dmg.png"
 endef
+endif
 
 $(eval $(generic-package))

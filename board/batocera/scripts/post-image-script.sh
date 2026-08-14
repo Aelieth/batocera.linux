@@ -79,14 +79,32 @@ do
     GENIMAGEDIR="${BR2_EXTERNAL_BATOCERA_PATH}/board/batocera/${BATOCERA_PATHSUBTARGET}"
     GENIMAGEFILE="${GENIMAGEDIR}/genimage.cfg"
     FILES=$(find "${BATOCERA_BINARIES_DIR}/boot" -type f | sed -e s+"^${BATOCERA_BINARIES_DIR}/boot/\(.*\)$"+"file \1 \{ image = '\1' }"+ | tr '\n' '@')
-    cat "${GENIMAGEFILE}" | sed -e s+'@files'+"${FILES}"+ | tr '@' '\n' > "${BATOCERA_BINARIES_DIR}/genimage.cfg" || exit 1
+    # Only expand a standalone placeholder line. A comment that happens to
+    # mention the token must not dump file { } stanzas outside vfat { }.
+    sed -e '/^[[:space:]]*@files[[:space:]]*$/s+@files+'"${FILES}"'+' "${GENIMAGEFILE}" | tr '@' '\n' > "${BATOCERA_BINARIES_DIR}/genimage.cfg" || exit 1
+
+    # SNES-HD: SHARE is BTRFS. Build the filesystem image after the vfat file
+    # list is expanded so it is not stuffed into the FAT boot. Squash OS is
+    # unchanged.
+    if [ "${BATOCERA_SUBTARGET}" = "sneshd" ]; then
+        echo "creating userdata.btrfs (SHARE)" >&2
+        SHARE_IMG="${BATOCERA_BINARIES_DIR}/boot/userdata.btrfs"
+        rm -f "${SHARE_IMG}"
+        mkdir -p "${TARGET_DIR}/userdata"
+        # Pre-create so mkfs.btrfs can stat the output (avoids zoned ERROR).
+        truncate -s 512M "${SHARE_IMG}" || exit 1
+        "${HOST_DIR}/bin/mkfs.btrfs" -f \
+            -r "${TARGET_DIR}/userdata" \
+            -L SHARE \
+            "${SHARE_IMG}" || exit 1
+    fi
 
     # install syslinux
     if grep -qE "^BR2_TARGET_SYSLINUX=y$" "${BR2_CONFIG}"
     then
 	GENIMAGEBOOTFILE="${GENIMAGEDIR}/genimage-boot.cfg"
 	echo "installing syslinux" >&2
-	cat "${GENIMAGEBOOTFILE}" | sed -e s+'@files'+"${FILES}"+ | tr '@' '\n' > "${BATOCERA_BINARIES_DIR}/genimage-boot.cfg" || exit 1
+	sed -e '/^[[:space:]]*@files[[:space:]]*$/s+@files+'"${FILES}"'+' "${GENIMAGEBOOTFILE}" | tr '@' '\n' > "${BATOCERA_BINARIES_DIR}/genimage-boot.cfg" || exit 1
     "${HOST_DIR}/bin/genimage" --rootpath="${TARGET_DIR}" --inputpath="${BATOCERA_BINARIES_DIR}/boot" --outputpath="${BATOCERA_BINARIES_DIR}" --config="${BATOCERA_BINARIES_DIR}/genimage-boot.cfg" --tmppath="${GENIMAGE_TMP}" || exit 1
     "${HOST_DIR}/bin/syslinux" -i "${BATOCERA_BINARIES_DIR}/boot.vfat" -d "/boot/syslinux" || exit 1
     # remove genimage temp path as sometimes genimage v14 fails to start
@@ -98,6 +116,8 @@ do
 
     rm -f "${BATOCERA_BINARIES_DIR}/boot.vfat" || exit 1
     rm -f "${BATOCERA_BINARIES_DIR}/userdata.ext4" || exit 1
+    rm -f "${BATOCERA_BINARIES_DIR}/userdata.btrfs" || exit 1
+    rm -f "${BATOCERA_BINARIES_DIR}/boot/userdata.btrfs" || exit 1
     mv "${BATOCERA_BINARIES_DIR}/batocera.img" "${BATOCERAIMG}" || exit 1
     gzip "${BATOCERAIMG}" || exit 1
 

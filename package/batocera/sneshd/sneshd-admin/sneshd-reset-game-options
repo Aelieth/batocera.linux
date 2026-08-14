@@ -1,0 +1,6 @@
+#!/bin/sh
+# Drop per-cart custom configs so the next boot uses the cart originals.
+rm -f /media/SAVES/batocera-custom.conf
+rm -f /media/SAVES/gamelist-custom.xml
+rm -f /media/SAVES/gamelist-custom-*.xml
+sync

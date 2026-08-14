@@ -34,3 +34,10 @@ batocera-mok.key
 typescript
 .ruff_cache
 .coverage
+
+# SNES-HD archive and ramdisk dumps — not committed
+/SNES/
+/rootfs.cpio
+*.cpio
+*.cpio.lz4
+package/batocera/sneshd/**/__pycache__/

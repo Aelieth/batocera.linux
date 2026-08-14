@@ -1,0 +1,23 @@
+config BR2_PACKAGE_BATOCERA_SNESHD
+	bool "SNES-HD SNES-family image"
+	select BR2_PACKAGE_BATOCERA_RETROARCH
+	select BR2_PACKAGE_LIBRETRO_BSNES
+	select BR2_PACKAGE_LIBRETRO_BSNES_HD
+	select BR2_PACKAGE_LIBRETRO_SNES9X
+	select BR2_PACKAGE_LIBRETRO_MESENS
+	select BR2_PACKAGE_SNESHD_CART
+	select BR2_PACKAGE_SNESHD_ADMIN
+	select BR2_PACKAGE_SNESHD_PLYMOUTH
+	# Sinden only — not the full BATOCERA_GUNS umbrella (Aimtrak, Gun4IR, …)
+	select BR2_PACKAGE_SINDEN_GUNS
+	select BR2_PACKAGE_LIGHTGUNS_GAMES_PRECALIBRATIONS
+	select BR2_PACKAGE_HOST_BTRFS_PROGS
+	help
+	  SNES-HD console package set. Turns off Batocera's all-systems
+	  umbrella and keeps only the Super Nintendo family:
+
+	    snes, snes-msu1, satellaview, sufami, sgb, sgb-msu1
+
+	  Default core is libretro bsnes-hd (DerKoun, ARM64) at 3x Mode 7.
+	  Sinden is selected here; BATOCERA_GUNS is gated off in SYSTEM.
+	  Do not select this on stock bcm2712.

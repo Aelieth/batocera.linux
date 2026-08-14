@@ -1,0 +1,6 @@
+config BR2_PACKAGE_SNESHD_CART
+	bool "sneshd-cart"
+	help
+	  SNES-HD cartridge manager. Discovers BTRFS volumes by label
+	  (SHARE, SNES, SNES-*, SAVES), bind-mounts a cart session or
+	  falls back to admin on SHARE, and hard-powers-off on yank.

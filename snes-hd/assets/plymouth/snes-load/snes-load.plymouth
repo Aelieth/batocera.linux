@@ -1,0 +1,10 @@
+[Plymouth Theme]
+Name=snes-load
+Description=A retro SNES-inspired boot splash with animated dots
+ModuleName=script
+DeviceVSync=true
+
+[script]
+ScaleBackgroundImage=false
+ImageDir=/usr/share/plymouth/themes/snes-load
+ScriptFile=/usr/share/plymouth/themes/snes-load/snes-load.script

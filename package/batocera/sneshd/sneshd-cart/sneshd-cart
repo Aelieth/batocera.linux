@@ -1,0 +1,302 @@
+#!/bin/bash
+# SNES-HD cart session. Port of SNES/postshare.sh — label discovery, no /dev/sda.
+
+set -u
+. /usr/lib/sneshd/sneshd-common.sh
+
+FORCE_ADMIN=0
+[ -e /boot/force-admin ] && FORCE_ADMIN=1
+
+apply_boot_conf() {
+    local key value
+    [ -f /tmp/boot.conf ] || return 0
+    while IFS='=' read -r key value; do
+        case "$key" in
+            system.hostname)
+                hostnamectl set-hostname "$value" 2>/dev/null || hostname "$value"
+                ;;
+            system.timezone)
+                [ -f "/usr/share/zoneinfo/$value" ] && ln -sf "/usr/share/zoneinfo/$value" /etc/localtime
+                ;;
+        esac
+    done < /tmp/boot.conf
+}
+
+mount_labeled() {
+    local label="$1"
+    local uuid="$2"
+    local opts="$3"
+    local mp="/media/${label}"
+    [ -z "$uuid" ] && return 1
+    mkdir -p "$mp"
+    if mountpoint -q "$mp" 2>/dev/null; then
+        umount "$mp" 2>/dev/null || umount -l "$mp" 2>/dev/null || true
+    fi
+    mount -o "$opts" UUID="$uuid" "$mp"
+}
+
+mount_share_userdata() {
+    if mountpoint -q /userdata 2>/dev/null; then
+        umount /userdata 2>/dev/null || umount -l /userdata 2>/dev/null || true
+    fi
+    mkdir -p /userdata
+    mount -o "$SHARE_OPTS" UUID="$share_uuid" /userdata
+}
+
+fallback_admin() {
+    local reason="$1"
+    log_msg "Fallback to admin: $reason"
+    if [ -n "$share_uuid" ]; then
+        umount_dev "${share_dev%% *}"
+        mount_labeled SHARE "$share_uuid" "$SHARE_OPTS" || true
+        mount_share_userdata || true
+    fi
+    [ -n "$snes_uuid" ] && mount_labeled SNES "$snes_uuid" "$SHARE_OPTS" || true
+    write_session admin
+    echo "mode=admin" >> "$SNESHD_HEALTH"
+    echo "reason=$reason" >> "$SNESHD_HEALTH"
+}
+
+parse_and_append_config() {
+    local temp_file="/tmp/cart_load_settings"
+    local system_conf="/tmp/SNES/system/batocera.conf"
+    local cart_conf="/media/${cart_label}/batocera/system/batocera.conf"
+    local custom_conf="/media/SAVES/batocera-custom.conf"
+    local config_file="$cart_conf"
+
+    : > "$temp_file"
+    if [ -f "$custom_conf" ]; then
+        config_file="$custom_conf"
+        log_msg "Using $custom_conf"
+    fi
+    [ -f "$config_file" ] || { log_msg "No cart config at $config_file"; return 0; }
+
+    awk '
+        /# ------------ User-generated Configurations ----------- #/ { in_config=1; next }
+        /# ------------ [A-Z]/ { in_config=0 }
+        in_config && (/snes\[/ || /controllers\./) { print }
+    ' "$config_file" > "$temp_file"
+
+    if [ -f "$system_conf" ] && [ -s "$temp_file" ]; then
+        cat "$temp_file" >> "$system_conf"
+        log_msg "Merged allowlisted keys into tmpfs batocera.conf"
+    fi
+}
+
+update_es_settings() {
+    local share_es="/media/SHARE/system/configs/emulationstation/es_settings.cfg"
+    local cart_es="/media/${cart_label}/batocera/system/configs/emulationstation/es_settings.cfg"
+    local tmp_es="/tmp/SNES/system/configs/emulationstation/es_settings.cfg"
+    local cart_theme_dir="/media/${cart_label}/batocera/system/configs/emulationstation/themesettings"
+    local tmp_theme_dir="/tmp/SNES/system/configs/emulationstation/themesettings"
+    local host_vars="ClockMode12 FirstJoystickOnly EnableSounds InvertButtons StopMusicOnScreenSaver VideoAudio VideoLowersMusic MusicVolume ScreenSaverSwapImageTimeout ScreenSaverTime ShowFlags ThemeRegionName UIMode"
+    local skip_re='^(SlideshowScreenSaverImageDir|MaxVRAM|StartupSystem|HiddenSystemsShowGames|ScreenSaverBehavior|SlideshowScreenSaverCustomImageSource)$'
+
+    mkdir -p "$(dirname "$tmp_es")"
+    if [ -d "$cart_theme_dir" ]; then
+        mkdir -p "$(dirname "$tmp_theme_dir")"
+        cp -a "$cart_theme_dir" "$(dirname "$tmp_theme_dir")"
+    fi
+
+    {
+        echo '<?xml version="1.0"?>'
+        echo '<config>'
+        if [ -f "$share_es" ]; then
+            local var line
+            while IFS= read -r line || [ -n "$line" ]; do
+                for var in $host_vars; do
+                    case "$line" in
+                        *name=\"$var\"*) echo "$line"; break ;;
+                    esac
+                done
+            done < "$share_es"
+        fi
+        if [ -f "$cart_es" ]; then
+            local var_name
+            while IFS= read -r line || [ -n "$line" ]; do
+                var_name=$(echo "$line" | sed -n 's/.*name="\([^"]*\)".*/\1/p')
+                [ -z "$var_name" ] && continue
+                case " $host_vars " in
+                    *" $var_name "*) continue ;;
+                esac
+                echo "$var_name" | grep -qE "$skip_re" && continue
+                echo "$line"
+            done < "$cart_es"
+        fi
+        echo '        <string name="SlideshowScreenSaverImageDir" value="/userdata/screensaver" />'
+        echo '        <int name="MaxVRAM" value="250" />'
+        echo '        <string name="StartupSystem" value="snes" />'
+        echo '        <bool name="HiddenSystemsShowGames" value="false" />'
+        echo '        <string name="ScreenSaverBehavior" value="slideshow" />'
+        echo '        <bool name="SlideshowScreenSaverCustomImageSource" value="true" />'
+        echo '</config>'
+    } > "$tmp_es"
+}
+
+overlay_custom_gamelists() {
+    local sys src dst
+    for sys in snes snes-msu1 satellaview sufami sgb sgb-msu1; do
+        if [ "$sys" = "snes" ]; then
+            src="/media/SAVES/gamelist-custom.xml"
+        else
+            src="/media/SAVES/gamelist-custom-${sys}.xml"
+        fi
+        dst="/userdata/roms/${sys}/gamelist.xml"
+        if [ -f "$src" ] && [ -e "$dst" -o -d "$(dirname "$dst")" ]; then
+            mkdir -p "/tmp/SNES/roms/${sys}"
+            cp "$src" "/tmp/SNES/roms/${sys}/gamelist.xml"
+            mkdir -p "$(dirname "$dst")"
+            touch "$dst" 2>/dev/null || true
+            mount -o bind "/tmp/SNES/roms/${sys}/gamelist.xml" "$dst" 2>/dev/null \
+                && log_msg "Bound custom gamelist for $sys"
+        fi
+    done
+}
+
+handle_cart() {
+    local cart_mp="/media/${cart_label}"
+    local first_dev="${cart_dev%% *}"
+
+    umount_dev "$first_dev"
+    if ! mount_labeled "$cart_label" "$cart_uuid" "ro"; then
+        fallback_admin "Failed to mount cart $cart_label"
+        return
+    fi
+
+    if [ -n "$saves_uuid" ]; then
+        umount_dev "${saves_dev%% *}"
+        mount_labeled SAVES "$saves_uuid" "$SAVES_OPTS" || log_msg "SAVES mount failed"
+    fi
+
+    if [ ! -d "${cart_mp}/batocera" ]; then
+        fallback_admin "Cart ${cart_mp}/batocera missing"
+        return
+    fi
+
+    if mountpoint -q /userdata 2>/dev/null; then
+        umount /userdata 2>/dev/null || umount -l /userdata 2>/dev/null || true
+    fi
+    if ! mount -o bind,ro "${cart_mp}/batocera" /userdata; then
+        fallback_admin "Failed to bind cart userdata"
+        return
+    fi
+
+    mkdir -p /tmp/SNES/system
+    if [ -d /media/SHARE/system ]; then
+        cp -a /media/SHARE/system /tmp/SNES/ || log_msg "Failed to copy SHARE system to tmpfs"
+        rm -f /tmp/SNES/system/services/reset_restores_system_defaults
+    fi
+
+    parse_and_append_config
+
+    local cache="/media/SNES/carts/${cart_id}"
+    local theme_src="${cart_mp}/batocera/themes"
+    local theme_bind="$theme_src"
+    if [ -d /media/SNES ]; then
+        if [ ! -d "$cache/themes" ] && [ -d "$theme_src" ]; then
+            mkdir -p "$cache"
+            cp -a "$theme_src" "$cache/" || log_msg "Theme cache copy failed"
+        fi
+        [ -d "$cache/themes" ] && theme_bind="$cache/themes"
+    fi
+
+    [ -n "$saves_uuid" ] && bind_over /media/SAVES /userdata/saves "$SAVES_OPTS" || true
+    bind_over /tmp/SNES/system /userdata/system "rw,noatime,nodiratime" || true
+    if [ -d "$theme_bind" ]; then
+        bind_over "$theme_bind" /userdata/themes "ro" || true
+    fi
+
+    update_es_settings
+    overlay_custom_gamelists
+
+    {
+        echo "cart_label=$cart_label"
+        echo "cart_wildcard=$cart_id"
+        echo "cart_raid=$cart_raid"
+    } >> "$SNESHD_HEALTH"
+    write_session cart
+    log_msg "Cart session $cart_label (raid=$cart_raid)"
+}
+
+wait_for_cart() {
+    local i=0
+    discover_volumes
+    [ -n "$cart_label" ] && return 0
+    while [ "$i" -lt "$SNESHD_USB_WAIT" ]; do
+        sleep 1
+        i=$((i + 1))
+        udevadm settle --timeout=1 2>/dev/null || true
+        discover_volumes
+        [ -n "$cart_label" ] && return 0
+    done
+    return 1
+}
+
+do_start() {
+    local start_ns end_ns
+    start_ns=$(date +%s%N)
+    : > "$SNESHD_LOG"
+    : > "$SNESHD_HEALTH"
+    mkdir -p "$SNESHD_RUN" /media /tmp/SNES
+
+    echo performance | tee /sys/devices/system/cpu/cpufreq/policy*/scaling_governor >/dev/null 2>&1 || true
+    apply_boot_conf
+
+    wait_for_cart || true
+
+    if [ -n "$share_dev" ]; then
+        tune_block "$share_dev" 256
+        umount_dev "$share_dev"
+        if ! mount_labeled SHARE "$share_uuid" "$SHARE_OPTS"; then
+            log_msg "Critical: cannot mount SHARE"
+            exit 1
+        fi
+    else
+        log_msg "Critical: no SHARE volume"
+        exit 1
+    fi
+
+    if [ -n "$snes_dev" ]; then
+        umount_dev "$snes_dev"
+        mount_labeled SNES "$snes_uuid" "$SHARE_OPTS" || log_msg "SNES volume mount failed"
+    fi
+
+    if [ "$FORCE_ADMIN" -eq 1 ]; then
+        log_msg "force-admin set, ignoring cart"
+        mount_share_userdata || true
+        write_session admin
+    elif [ -n "$cart_label" ]; then
+        local d
+        for d in $cart_dev; do
+            tune_block "$d" 32768
+        done
+        handle_cart
+    else
+        log_msg "No SNES-* cart, admin session"
+        mount_share_userdata || true
+        write_session admin
+    fi
+
+    end_ns=$(date +%s%N)
+    log_msg "sneshd-cart start done in $(((end_ns - start_ns) / 1000000)) ms mode=$(session_mode)"
+}
+
+do_stop() {
+    log_msg "sneshd-cart stop"
+}
+
+case "${1:-}" in
+    start) do_start ;;
+    stop)  do_stop ;;
+    status)
+        if [ -f "$SNESHD_SESSION" ]; then
+            cat "$SNESHD_SESSION"
+        else
+            echo "MODE=unknown"
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status}" >&2
+        exit 1
+        ;;
+esac

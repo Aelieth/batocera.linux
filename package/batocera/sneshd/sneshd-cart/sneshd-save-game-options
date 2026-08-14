@@ -1,0 +1,51 @@
+#!/bin/bash
+# Persist allowlisted cart settings + gamelist to SAVES (label, not /dev/sd*).
+
+. /usr/lib/sneshd/sneshd-common.sh
+LOG_FILE="/tmp/save_game_options.log"
+SNESHD_LOG="$LOG_FILE"
+: > "$LOG_FILE"
+
+discover_volumes
+if [ -z "$saves_uuid" ]; then
+    log_msg "SAVES not found"
+    echo "SAVES partition not found."
+    exit 1
+fi
+
+if ! mountpoint -q /media/SAVES 2>/dev/null; then
+    mkdir -p /media/SAVES
+    if ! mount -o "$SAVES_OPTS" UUID="$saves_uuid" /media/SAVES; then
+        log_msg "Failed to mount SAVES"
+        exit 1
+    fi
+fi
+
+combined="/tmp/SNES/system/batocera.conf"
+system_file="/media/SHARE/system/batocera.conf"
+saves_file="/media/SAVES/batocera-custom.conf"
+temp_file="/tmp/cart_current_settings"
+: > "$temp_file"
+
+if [ -f "$combined" ]; then
+    awk '
+        /# ------------ User-generated Configurations ----------- #/ { in_config=1; next }
+        /# ------------ [A-Z]/ { in_config=0 }
+        in_config && (/snes\[/ || /controllers\./) { print }
+    ' "$combined" > "$temp_file"
+    if [ -s "$temp_file" ] && [ -f "$system_file" ]; then
+        cp "$system_file" "$saves_file"
+        cat "$temp_file" >> "$saves_file"
+        sync
+        log_msg "Wrote $saves_file"
+    else
+        log_msg "No allowlisted keys to save"
+    fi
+else
+    log_msg "No tmpfs batocera.conf"
+fi
+
+python3 /usr/lib/sneshd/sneshd-save-gamelist.py
+rc=$?
+sync
+exit $rc

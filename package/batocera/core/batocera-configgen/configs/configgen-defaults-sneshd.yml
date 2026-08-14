@@ -1,0 +1,22 @@
+default:
+  options:
+    hud_support: true
+
+snes:
+  emulator: libretro
+  core:     bsnes_hd
+snes-msu1:
+  emulator: libretro
+  core:     bsnes_hd
+sgb:
+  emulator: libretro
+  core:     mesen-s
+sgb-msu1:
+  emulator: libretro
+  core:     bsnes_hd
+satellaview:
+  emulator: libretro
+  core:     snes9x
+sufami:
+  emulator: libretro
+  core:     snes9x

@@ -1,0 +1,125 @@
+#!/bin/sh
+# SNES-HD share seed. Same contract as the stock S12, minus Kodi / ports /
+# other-emulator scaffolding. Still calls /boot/postshare.sh when present.
+
+if test "$1" != "start"
+then
+    if [ -x /usr/bin/sneshd-cart ]; then
+        /usr/bin/sneshd-cart stop
+    elif [ -e /boot/postshare.sh ]; then
+        bash /boot/postshare.sh stop
+    fi
+    exit 0
+fi
+
+DOUPDATE=0
+CURVERSION=$(cat /usr/share/batocera/batocera.version)
+SHAREVERSION=$(cat /userdata/system/data.version 2>/dev/null)
+test "${CURVERSION}" != "${SHAREVERSION}" && DOUPDATE=1
+
+IN=/usr/share/batocera/datainit
+OUT=/userdata
+
+for DIR in cheats \
+           system/.cache \
+           system/.config/lirc \
+           system/bluetooth \
+           system/configs/retroarch/config/remaps \
+           system/configs/retroarch/inputs \
+           system/configs/retroarch/cores \
+           system/pacman \
+           system/pacman/db \
+           system/pacman/pkg \
+           system/pacman/hooks \
+           system/logs
+do
+    if test ! -e "$OUT""/""$DIR"
+    then
+        mkdir -p "$OUT""/""$DIR"
+    fi
+done
+
+# Only SNES-family roms dirs from datainit (es_systems generation already
+# limited the tree; do not recreate mame/ports scaffolding).
+for DIR in roms
+do
+    if mkdir -p "$OUT""/""$DIR"
+    then
+	find "$IN""/""$DIR" -mindepth 1 -maxdepth 1 -type d |
+	    while read SUBDIR
+	    do
+		BNAME=$(basename "$SUBDIR")
+		TDIR="$OUT""/""$DIR""/""$BNAME"
+		if test ! -e "$TDIR"
+		then
+		    cp -r "$SUBDIR" "$TDIR"
+		fi
+	    done
+    fi
+done
+
+if test "${DOUPDATE}" = 1
+then
+    for DIR in roms
+    do
+	find "$IN""/""$DIR" -mindepth 1 -maxdepth 2 -type f -name "_info.txt" |
+            while read FILE
+            do
+		RELATIVE_PATH="${FILE#$IN/}"
+		DEST_FILE="$OUT/$RELATIVE_PATH"
+		if [ "$FILE" -nt "$DEST_FILE" ]; then
+                    echo "Updating $DEST_FILE"
+                    cp -f "$FILE" "$DEST_FILE"
+		fi
+            done
+    done
+fi
+
+for FILE in music bios saves screenshots recordings splash decorations \
+            system/.config/lirc/lircd.conf \
+            system/configs/emulationstation/es_settings.cfg \
+            system/configs/retroarch/cores/retroarch-core-options.cfg \
+            system/configs/shadersets \
+            system/batocera.conf \
+            system/pacman/hooks/batocera-install.hook \
+            system/pacman/hooks/batocera-uninstall.hook \
+            system/pacman/pacman.conf
+do
+    if [ "$FILE" = "system/configs/emulationstation/es_settings.cfg" ] || [ "$FILE" = "system/batocera.conf" ]; then
+        if [ ! -e "${OUT}/${FILE}" ]; then
+            mkdir -p "$(dirname "${OUT}/${FILE}")"
+            echo "Creating $OUT/$FILE"
+            cp -rfu --preserve=timestamps "${IN}/${FILE}" "$(dirname "${OUT}/${FILE}")"/
+        fi
+    else
+        if [ -e "${IN}/${FILE}" ] && { [ ! -e "${OUT}/${FILE}" ] || [ "${IN}/${FILE}" -nt "${OUT}/${FILE}" ]; }; then
+            mkdir -p "$(dirname "${OUT}/${FILE}")"
+            echo "Updating $OUT/$FILE"
+            cp -rfu --preserve=timestamps "${IN}/${FILE}" "$(dirname "${OUT}/${FILE}")"/
+        fi
+    fi
+done
+
+mkdir -p "${OUT}/decorations"
+test -e "${OUT}/decorations/readme.txt" || \
+    { test -e "${IN}/decorations/readme.txt" && cp -r "${IN}/decorations/readme.txt" "${OUT}/decorations/readme.txt"; }
+
+mkdir -p "${OUT}/themes"
+
+mkdir -p /userdata/system/ssh
+mkdir -p -m 0700 /userdata/system/.ssh
+chmod 0700 /userdata/system/.ssh
+
+test -e /userdata/system/machine-id || dbus-uuidgen --ensure=/userdata/system/machine-id
+ln -sf /userdata/system/machine-id /var/lib/dbus/machine-id
+ln -sf /userdata/system/machine-id /etc/machine-id
+
+cp /usr/share/batocera/batocera.version /userdata/system/data.version
+
+if [ -x /usr/bin/sneshd-cart ]; then
+    /usr/bin/sneshd-cart start
+elif [ -e /boot/postshare.sh ]; then
+    bash /boot/postshare.sh start
+fi
+
+exit 0

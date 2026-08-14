@@ -1,0 +1,20 @@
+#!/bin/sh
+# joycond is not built on SNES-HD.
+
+[ -x /usr/bin/joycond ] || exit 0
+
+case "$1" in
+    start)
+        pgrep -x joycond >/dev/null && exit 0
+        modprobe ledtrig-timer 2>/dev/null
+        nohup /usr/bin/joycond >/dev/null 2>&1 &
+        ;;
+    stop)
+        pkill -x joycond 2>/dev/null
+        ;;
+    restart)
+        "$0" stop
+        "$0" start
+        ;;
+esac
+exit 0

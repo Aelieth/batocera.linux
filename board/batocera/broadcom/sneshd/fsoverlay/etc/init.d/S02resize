@@ -1,0 +1,59 @@
+#!/bin/bash
+# SNES-HD: SHARE is BTRFS. Stock S02resize exits unless the fs is ext4.
+# Grow the partition and `btrfs filesystem resize max` when autoresize=true.
+
+BOOTCONF="/boot/batocera-boot.conf"
+LOG="/tmp/resize.log"
+
+test "$1" != "start" && exit 0
+
+if ! grep -qE '^[ ]*autoresize[ ]*=[ ]*true[ ]*$' "${BOOTCONF}" && \
+   ! grep -qE '^[ ]*format-internal[ ]*=' "${BOOTCONF}"; then
+    exit 0
+fi
+
+remove_trigger() {
+    local trigger="$1"
+    mount -o remount,rw /boot
+    sed -i -e "s/^[ ]*${trigger}/#${trigger}/g" "${BOOTCONF}"
+    mount -o remount,ro /boot
+}
+
+if grep -qE '^[ ]*autoresize[ ]*=[ ]*true[ ]*$' "${BOOTCONF}"; then
+    PART=$(batocera-part "share_internal")
+    PARTNUM=$(batocera-part "share_internal_num")
+    DISK=$(batocera-part prefix "${PART}")
+    PARTTYPE=$(blkid "${PART}" | sed -e s+'^.* TYPE="\([^"]*\)\".*'+'\1'+)
+    echo "autoresize PART=${PART} TYPE=${PARTTYPE}" >> "$LOG"
+
+    if [ "${PARTTYPE}" = "btrfs" ]; then
+        parted -s -m -f "${DISK}" resizepart "${PARTNUM}" 100% >> "$LOG" 2>&1 || true
+        partprobe "${DISK}" >> "$LOG" 2>&1 || true
+        sleep 2
+        mkdir -p /tmp/share-resize
+        if mount -t btrfs "${PART}" /tmp/share-resize >> "$LOG" 2>&1; then
+            btrfs filesystem resize max /tmp/share-resize >> "$LOG" 2>&1 || true
+            umount /tmp/share-resize >> "$LOG" 2>&1 || true
+        fi
+        rmdir /tmp/share-resize 2>/dev/null || true
+        remove_trigger autoresize
+        exit 0
+    fi
+
+    # Unexpected fs on this board — do not run ext4 mkfs against it.
+    echo "autoresize skipped for TYPE=${PARTTYPE}" >> "$LOG"
+    remove_trigger autoresize
+    exit 0
+fi
+
+FORMAT_INTERNAL_TYPE=$(grep -E '^[ ]*format-internal[ ]*=.*$' "${BOOTCONF}" | head -1 | sed -e s+"^[ ]*format-internal[ ]*=[ ]*\(.*\)[ ]*$"+"\1"+)
+if test -n "${FORMAT_INTERNAL_TYPE}"; then
+    PART=$(batocera-part "share_internal")
+    case "${FORMAT_INTERNAL_TYPE}" in
+        btrfs) mkfs.btrfs -L SHARE -f "${PART}" >> "$LOG" 2>&1 ;;
+        ext4)  mkfs.ext4 -L SHARE -q -F -F "${PART}" >> "$LOG" 2>&1 ;;
+        exfat) mkfs.exfat -n SHARE "${PART}" >> "$LOG" 2>&1 ;;
+    esac
+    remove_trigger format-internal
+fi
+exit 0

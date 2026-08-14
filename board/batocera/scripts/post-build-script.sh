@@ -143,3 +143,13 @@ tar -C "${TARGET_DIR}" --ignore-failed-read -c ${BATOCERA_RUFOMACULATA_DIRS} \
 if [ -d "${BINARIES_DIR}/batocera-target" ]; then
     cp -pr "${BINARIES_DIR}/batocera-target/./" "${TARGET_DIR}/./"
 fi
+
+# SNES-HD: drop seed dirs S12 would copy onto SHARE. Must run here, after
+# per-package rsync, not in a package install hook.
+if grep -qE '^BR2_PACKAGE_BATOCERA_SNESHD=y$' "${BR2_CONFIG}"; then
+    rm -rf "${TARGET_DIR}/usr/share/batocera/datainit/kodi" \
+           "${TARGET_DIR}/usr/share/batocera/datainit/system/.kodi" \
+           "${TARGET_DIR}/usr/share/batocera/datainit/roms/ports" \
+           "${TARGET_DIR}/usr/share/batocera/datainit/roms/gb" \
+           "${TARGET_DIR}/usr/share/batocera/datainit/roms/gbc"
+fi

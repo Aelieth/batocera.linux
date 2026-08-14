@@ -1,0 +1,25 @@
+#!/bin/sh
+# Idle RAID1 scrub after a cart session. Does not block ES.
+
+. /usr/lib/sneshd/sneshd-common.sh
+
+case "${1:-}" in
+    start)
+        [ -f "$SNESHD_HEALTH" ] || exit 0
+        cart_label=""
+        cart_raid=0
+        while IFS= read -r line; do
+            case "$line" in
+                cart_label=*) cart_label="${line#*=}" ;;
+                cart_raid=*)  cart_raid="${line#*=}" ;;
+            esac
+        done < "$SNESHD_HEALTH"
+        if [ "$cart_raid" = "1" ] && [ -n "$cart_label" ]; then
+            sleep 2
+            echo "[$(date +%H:%M:%S)] scrub=start" >> "$SNESHD_HEALTH"
+            nice -n 19 ionice -c3 btrfs scrub start -B "/media/$cart_label" >/dev/null 2>&1 &
+        fi
+        ;;
+    stop|status) ;;
+    *) echo "Usage: $0 {start|stop|status}" >&2; exit 1 ;;
+esac

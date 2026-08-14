@@ -1,0 +1,27 @@
+#!/bin/sh
+# Lean S11: mount SHARE by label so the rest of boot has /userdata.
+# Cart overlay is /usr/bin/sneshd-cart from S12. No 15s sharewait.
+
+[ "$1" = "stop" ] && exit 0
+[ "$1" = "start" ] || exit 0
+
+printf "Starting share: "
+
+SHARE_DEV=$(blkid -L SHARE 2>/dev/null || true)
+if [ -n "$SHARE_DEV" ]; then
+    if command -v batocera-mount >/dev/null 2>&1; then
+        batocera-mount btrfs 1 "$SHARE_DEV" /userdata \
+            || mount -t btrfs -o noatime,nodiratime,autodefrag "$SHARE_DEV" /userdata
+    else
+        mount -t btrfs -o noatime,nodiratime,autodefrag "$SHARE_DEV" /userdata
+    fi
+else
+    mount -t tmpfs -o size=256M tmpfs /userdata
+fi
+
+if [ -f /boot/batocera-boot.conf ]; then
+    grep -E '^(system.hostname|system.timezone)=' /boot/batocera-boot.conf > /tmp/boot.conf || true
+fi
+
+echo "ok"
+exit 0

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Restore host batocera.conf from the image datainit (not a live overlay copy).
+SRC=/usr/share/batocera/datainit/system/batocera.conf
+DST=/media/SHARE/system/batocera.conf
+if [ ! -f "$SRC" ]; then
+    echo "No pristine batocera.conf at $SRC" >&2
+    exit 1
+fi
+mkdir -p "$(dirname "$DST")"
+cp -f "$SRC" "$DST"
+sync

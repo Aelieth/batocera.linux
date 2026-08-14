@@ -1,5 +1,12 @@
 menu "batocera.linux"
 
+menu "SNES-HD"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/sneshd/sneshd-system/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/sneshd/sneshd-cart/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/sneshd/sneshd-admin/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/sneshd/sneshd-plymouth/Config.in"
+endmenu
+
 menu "System"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/core/batocera-system/Config.in"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/core/batocera-configgen/Config.in"

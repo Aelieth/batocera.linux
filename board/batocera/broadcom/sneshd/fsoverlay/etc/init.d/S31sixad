@@ -1,0 +1,25 @@
+#!/bin/sh
+# qtsixa / sixad is not built on SNES-HD.
+
+[ -x /usr/sixad/official/sixad-bin ] || [ -x /usr/sixad/bluez/sixad-bin ] || exit 0
+
+case "$1" in
+    start)
+        enabled="$(/usr/bin/batocera-settings-get controllers.ps3.enabled)"
+        bt_enabled="$(/usr/bin/batocera-settings-get controllers.bluetooth.enabled)"
+        [ "$enabled" = "1" ] && [ "$bt_enabled" = "1" ] || exit 0
+        settings_version="$(/usr/bin/batocera-settings-get controllers.ps3.driver)"
+        [ "$settings_version" = "bluez" ] && exit 0
+        [ -z "$settings_version" ] && settings_version="official"
+        [ -x "/usr/sixad/${settings_version}/sixad-bin" ] || exit 0
+        /usr/sixad/${settings_version}/sixad-bin 0 0 0 &
+        ;;
+    stop)
+        killall sixad-bin sixad-sixaxis >/dev/null 2>&1
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+esac
+exit 0

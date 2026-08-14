@@ -1,0 +1,5 @@
+#!/bin/sh
+# Samba is not in the SNES-HD package set.
+[ -x /usr/sbin/smbd ] || [ -x /usr/bin/smbd ] || exit 0
+echo "SMB: binary present but no SNES-HD samba service" >&2
+exit 0

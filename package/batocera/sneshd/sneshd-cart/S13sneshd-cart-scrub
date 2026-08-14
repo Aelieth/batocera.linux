@@ -1,0 +1,14 @@
+#!/bin/sh
+# Background RAID1 scrub after the cart session is up (after S12).
+
+case "$1" in
+    start)
+        [ -x /usr/bin/sneshd-cart-scrub ] && /usr/bin/sneshd-cart-scrub start
+        ;;
+    stop)
+        [ -x /usr/bin/sneshd-cart-scrub ] && /usr/bin/sneshd-cart-scrub stop
+        ;;
+    *)
+        exit 0
+        ;;
+esac

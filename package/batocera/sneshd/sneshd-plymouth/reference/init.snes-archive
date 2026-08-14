@@ -1,0 +1,49 @@
+#!/bin/sh
+# Redirect console
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
+# Basic mounts
+mount -t proc -o nodev,noexec,nosuid proc /proc
+mount -t sysfs -o nodev,noexec,nosuid sysfs /sys
+mount -t devtmpfs none /dev
+
+# Plymouth splash (run in background with debug)
+plymouthd --mode=boot --tty=/dev/tty1 &
+sleep 0.1 # Brief delay to ensure plymouthd starts
+plymouth --show-splash &
+
+# Load modules in parallel
+modprobe pcie-brcmstb
+modprobe nvme-core
+modprobe nvme
+modprobe xhci-hcd
+modprobe xhci-plat-hcd
+modprobe xhci-pci-renesas
+modprobe usbmon &
+
+# Allow the system to stabilize and find devices
+sleep 1.5
+
+# Test mode: Simulate fsck status updates
+TEST_FSCK=0
+if [ "$TEST_FSCK" = "1" ]; then
+    plymouth update --status="busy=1"
+    sleep 1.5
+    plymouth update --status="busy=0"
+    sleep 1.5
+    plymouth update --status="busy=1"
+    sleep 1.5
+    plymouth update --status="busy=0"
+    sleep 1.5
+fi
+
+plymouth update --status="switch_root=1"
+sleep 1
+plymouth update --status="animate_expand=1"
+sleep 1
+plymouth update --status="display_logo=1"
+sleep 1.5
+plymouth --quit || echo "Plymouth quit failed"
+exec /bin/sh

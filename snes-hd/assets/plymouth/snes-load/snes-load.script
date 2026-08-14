@@ -1,0 +1,447 @@
+# Get screen dimensions
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+# Load dot images
+yellow_image = Image("yellow-dot.png");
+green_image = Image("green-dot.png");
+red_image = Image("red-dot.png");
+blue_image = Image("blue-dot.png");
+silhouette_image = Image("expand/silhouette.png");
+logo_image = Image("logo/logo01.png");
+
+# Load green and yellow expand images (g01.png to g12.png, y01.png to y12.png)
+for (i = 0; i < 12; i++) {
+    if (i + 1 < 10) {
+        green_expand_images[i] = Image("expand/g0" + (i + 1) + ".png");
+        yellow_expand_images[i] = Image("expand/y0" + (i + 1) + ".png");
+    } else {
+        green_expand_images[i] = Image("expand/g" + (i + 1) + ".png");
+        yellow_expand_images[i] = Image("expand/y" + (i + 1) + ".png");
+    }
+}
+
+# Create sprites
+yellow_sprite = Sprite(); yellow_sprite.SetImage(yellow_image);
+green_sprite = Sprite(); green_sprite.SetImage(green_image);
+red_sprite = Sprite(); red_sprite.SetImage(red_image);
+blue_sprite = Sprite(); blue_sprite.SetImage(blue_image);
+blue_silhouette_sprite = Sprite(); blue_silhouette_sprite.SetImage(silhouette_image);
+red_silhouette_sprite = Sprite(); red_silhouette_sprite.SetImage(silhouette_image);
+logo_sprite = Sprite(); logo_sprite.SetImage(logo_image);
+
+# Set z-order (logo front, yellow next, blue back)
+logo_sprite.SetZ(5);
+yellow_sprite.SetZ(4);
+green_sprite.SetZ(3);
+blue_silhouette_sprite.SetZ(2);
+red_silhouette_sprite.SetZ(2);
+red_sprite.SetZ(1);
+blue_sprite.SetZ(0);
+
+# Start and end positions for converge (% of screen)
+start_x_percent[0] = 51.35; start_y_percent[0] = 72.22; end_x_percent[0] = 51.35; end_y_percent[0] = 45.28; # Yellow (converge: 986x780, spin: 986x489, position 8)
+start_x_percent[1] = 31.41; start_y_percent[1] = 37.13; end_x_percent[1] = 46.51; end_y_percent[1] = 37.13; # Green (converge: 603x401, spin: 893x401, position 12)
+start_x_percent[2] = 71.46; start_y_percent[2] = 37.13; end_x_percent[2] = 56.35; end_y_percent[2] = 37.13; # Red (converge: 1372x401, spin: 1082x401, position 4)
+start_x_percent[3] = 51.35; start_y_percent[3] = 1.30;  end_x_percent[3] = 51.35; end_y_percent[3] = 28.15; # Blue (converge: 986x14, spin: 986x304, position 0)
+
+# Start and end positions for expand (% of screen)
+expand_start_x_percent[0] = 51.3542; expand_start_y_percent[0] = 45.2778; expand_end_x_percent[0] = 50.5208; expand_end_y_percent[0] = 51.7593; # Yellow (spin: 986x489, end: 970x559)
+expand_start_x_percent[1] = 46.5104; expand_start_y_percent[1] = 37.1296; expand_end_x_percent[1] = 39.7396; expand_end_y_percent[1] = 42.6852; # Green (spin: 893x401, end: 763x461)
+expand_start_x_percent[2] = 56.3542; expand_start_y_percent[2] = 37.1296; expand_end_x_percent[2] = 58.4375; expand_end_y_percent[2] = 36.2037; # Red (spin: 1082x401, end: 1122x391)
+expand_start_x_percent[3] = 51.3542; expand_start_y_percent[3] = 28.1481; expand_end_x_percent[3] = 47.1875; expand_end_y_percent[3] = 25.8333; # Blue (spin: 986x304, end: 906x279)
+expand_start_x_percent[4] = 46.1458; expand_start_y_percent[4] = 37.4074; expand_end_x_percent[4] = 47.2875; expand_end_y_percent[4] = 35.6926; # Blue silhouette (start: 886x404, end: 908x385)
+expand_start_x_percent[5] = 51.1458; expand_start_y_percent[5] = 46.3889; expand_end_x_percent[5] = 58.5375; expand_end_y_percent[5] = 46.0630; # Red silhouette (start: 982x501, end: 1124x497)
+
+# Sprites array
+sprites[0] = yellow_sprite;
+sprites[1] = green_sprite;
+sprites[2] = red_sprite;
+sprites[3] = blue_sprite;
+sprites[4] = blue_silhouette_sprite;
+sprites[5] = red_silhouette_sprite;
+
+# Clock points (16 points, % of screen, 22.5° apart)
+# Center: (51.39, 36.92), radius: ~90 pixels in y (~8.36%), ~50.6 pixels in x (~4.70%), scaled for 1920x1080
+clock_x_percent[0] = 51.35; clock_y_percent[0] = 45.28; # 0° (blue spin, 986x304)
+clock_x_percent[1] = 53.21; clock_y_percent[1] = 44.90; # 22.5°
+clock_x_percent[2] = 54.75; clock_y_percent[2] = 43.08; # 45°
+clock_x_percent[3] = 55.77; clock_y_percent[3] = 40.34; # 67.5°
+clock_x_percent[4] = 56.35; clock_y_percent[4] = 37.13; # 90° (red spin, 1082x401)
+clock_x_percent[5] = 55.77; clock_y_percent[5] = 33.89; # 112.5°
+clock_x_percent[6] = 54.75; clock_y_percent[6] = 31.16; # 135°
+clock_x_percent[7] = 53.21; clock_y_percent[7] = 29.34; # 157.5°
+clock_x_percent[8] = 51.35; clock_y_percent[8] = 28.98; # 180° (yellow spin, 986x489)
+clock_x_percent[9] = 49.58; clock_y_percent[9] = 29.34; # 202.5°
+clock_x_percent[10] = 48.05; clock_y_percent[10] = 31.16; # 225°
+clock_x_percent[11] = 47.02; clock_y_percent[11] = 33.89; # 247.5°
+clock_x_percent[12] = 46.51; clock_y_percent[12] = 37.13; # 270° (green spin, 893x401)
+clock_x_percent[13] = 47.02; clock_y_percent[13] = 40.34; # 292.5°
+clock_x_percent[14] = 48.05; clock_y_percent[14] = 43.08; # 315°
+clock_x_percent[15] = 49.58; clock_y_percent[15] = 44.90; # 337.5°
+
+# PNG offset (% of screen)
+png_offset_x_percent = (100 / screen_width) * 100;
+png_offset_y_percent = (100 / screen_height) * 100;
+
+# Animation variables
+frame_index = 0;
+frame_count = 24; # 1 second at 24 FPS
+frame_duration = 0.04167; # 24 FPS
+animation_phase = 0; # 0 = startup converge, 1 = normal clockwise spin, 2 = counter-clockwise spin, 3 = diverge, 4 = converge, 5 = switch_root spin, 6 = expand animation, 7 = logo display
+busy_mode = false; # false = normal, true = busy
+switch_root_mode = false; # false = normal, true = switch_root
+expand_mode = false; # false = normal, true = expand
+logo_mode = false; # false = normal, true = logo
+spin_frame = 0; # Spin frame counter
+spin_duration = 24; # 1 second at 24 FPS
+clock_point = 0; # Clock point (0 to 15)
+start_clock_point = 0; # Starting clock point for converge
+sub_frame = 0; # Sub-frame (0 to 2 for faster rotation)
+sub_frame_count = 3; # 3 steps per clock point transition
+logo_opacity = 0; # Opacity for logo fade (0 to 1)
+
+# Status update callback
+fun on_status_update(new_status) {
+    if (new_status == "busy=1") {
+        if (!busy_mode || animation_phase != 2) {
+            busy_mode = true;
+            switch_root_mode = false;
+            expand_mode = false;
+            logo_mode = false;
+            animation_phase = 2; # Switch to counter-clockwise spin
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "busy=0") {
+        if (busy_mode || animation_phase == 2 || animation_phase == 3) {
+            busy_mode = false;
+            switch_root_mode = false;
+            expand_mode = false;
+            logo_mode = false;
+            if (animation_phase == 2) {
+                animation_phase = 1; # From counter-clockwise spin to clockwise spin
+                frame_index = 0;
+                spin_frame = 0;
+                sub_frame = 0;
+            } else if (animation_phase == 3) {
+                animation_phase = 4; # From diverge to converge
+                frame_index = frame_count - frame_index; # Reverse diverge progress
+            } else if (animation_phase != 4) {
+                animation_phase = 1; # Ensure clockwise spin
+                frame_index = 0;
+                spin_frame = 0;
+                sub_frame = 0;
+            }
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "switch_root=1") {
+        if (!switch_root_mode || animation_phase != 5) {
+            switch_root_mode = true;
+            busy_mode = false;
+            expand_mode = false;
+            logo_mode = false;
+            animation_phase = 5; # Switch to switch_root clockwise spin
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "switch_root=0") {
+        if (switch_root_mode || animation_phase == 5) {
+            switch_root_mode = false;
+            busy_mode = false;
+            expand_mode = false;
+            logo_mode = false;
+            animation_phase = 1; # Resume normal clockwise spin
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "animate_expand=1") {
+        if (!expand_mode || animation_phase != 6) {
+            expand_mode = true;
+            busy_mode = false;
+            switch_root_mode = false;
+            logo_mode = false;
+            animation_phase = 6; # Switch to expand animation
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "animate_expand=0") {
+        if (expand_mode || animation_phase == 6) {
+            expand_mode = false;
+            busy_mode = false;
+            switch_root_mode = false;
+            logo_mode = false;
+            animation_phase = 1; # Resume normal clockwise spin
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    } else if (new_status == "display_logo=1") {
+        if (!logo_mode || animation_phase != 7) {
+            logo_mode = true;
+            busy_mode = false;
+            switch_root_mode = false;
+            expand_mode = false;
+            animation_phase = 7; # Switch to logo display
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            logo_opacity = 0;
+            # Set expand sprites to final positions immediately
+            green_sprite.SetImage(green_expand_images[11]); # g12.png
+            yellow_sprite.SetImage(yellow_expand_images[11]); # y12.png
+            for (i = 0; i < 6; i++) {
+                x_percent = expand_end_x_percent[i];
+                y_percent = expand_end_y_percent[i];
+                x = (x_percent / 100) * screen_width;
+                y = (y_percent / 100) * screen_height;
+                sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+            }
+        }
+    } else if (new_status == "display_logo=2") {
+        if (logo_mode || animation_phase == 7) {
+            logo_mode = false;
+            busy_mode = false;
+            switch_root_mode = false;
+            expand_mode = false;
+            animation_phase = 1; # Resume normal clockwise spin
+            frame_index = 0;
+            spin_frame = 0;
+            sub_frame = 0;
+            yellow_sprite.SetImage(yellow_image);
+            green_sprite.SetImage(green_image);
+            logo_sprite.SetOpacity(0);
+        }
+    }
+}
+
+# Transition animation (converge or diverge)
+fun animate_transition(direction) {
+    if (frame_index >= frame_count) {
+        frame_index = 0;
+        if (direction == 1) {
+            if (animation_phase == 0) {
+                animation_phase = 1; # Startup to normal clockwise spin
+                start_clock_point = clock_point; # Save converge clock point
+            } else {
+                animation_phase = 1; # Converge to normal clockwise spin
+            }
+        } else {
+            animation_phase = 4; # Diverge to converge
+        }
+        return frame_duration;
+    }
+    t = frame_index / frame_count;
+    if (direction == -1) {
+        t = 1 - t; # Reverse for diverge
+    }
+    for (i = 0; i < 4; i++) {
+        x_percent = start_x_percent[i] + (end_x_percent[i] - start_x_percent[i]) * t;
+        y_percent = start_y_percent[i] + (end_y_percent[i] - start_y_percent[i]) * t;
+        x = (x_percent / 100) * screen_width;
+        y = (y_percent / 100) * screen_height;
+        sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+    }
+    frame_index++;
+    return frame_duration;
+}
+
+# Spin animation (clockwise or counter-clockwise)
+fun animate_spin(direction) {
+    yellow_point = clock_point;
+    if (direction == 1) {
+        green_point = (clock_point + 12) % 16; # Clockwise: green 270° behind (position 12)
+        red_point = (clock_point + 4) % 16;    # red 90° ahead (position 4)
+        blue_point = (clock_point + 8) % 16;   # blue 180° ahead (position 8)
+    } else {
+        green_point = (clock_point + 12) % 16; # Counter-clockwise: green 270° behind (position 12)
+        red_point = (clock_point + 4) % 16;    # red 90° ahead (position 4)
+        blue_point = (clock_point + 8) % 16;   # blue 180° ahead (position 8)
+    }
+    t = sub_frame / sub_frame_count; # Smoother interpolation
+    for (i = 0; i < 4; i++) {
+        if (i == 0) {
+            point = yellow_point;
+        }
+        if (i == 1) {
+            point = green_point;
+        }
+        if (i == 2) {
+            point = red_point;
+        }
+        if (i == 3) {
+            point = blue_point;
+        }
+        if (direction == 1) {
+            next = (point + 15) % 16; # Clockwise
+        } else {
+            next = (point + 1) % 16; # Counter-clockwise
+        }
+        x_percent = clock_x_percent[point] + (clock_x_percent[next] - clock_x_percent[point]) * t;
+        y_percent = clock_y_percent[point] + (clock_y_percent[next] - clock_y_percent[point]) * t;
+        x = (x_percent / 100) * screen_width;
+        y = (y_percent / 100) * screen_height;
+        sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+    }
+    sub_frame++;
+    if (sub_frame >= sub_frame_count) {
+        sub_frame = 0;
+        if (direction == 1) {
+            clock_point = (clock_point + 15) % 16; # Clockwise
+        } else {
+            clock_point = (clock_point + 1) % 16; # Counter-clockwise
+        }
+    }
+    spin_frame++;
+    if (animation_phase == 2 && spin_frame >= spin_duration && clock_point == start_clock_point) {
+        animation_phase = 3; # Counter-clockwise to diverge
+        frame_index = 0;
+        spin_frame = 0;
+    }
+    return frame_duration;
+}
+
+# Switch root spin animation (clockwise, pause at yellow clock point 0)
+fun animate_switch_root_spin() {
+    yellow_point = clock_point;
+    green_point = (clock_point + 12) % 16; # Clockwise: green 270° behind (position 12)
+    red_point = (clock_point + 4) % 16;    # red 90° ahead (position 4)
+    blue_point = (clock_point + 8) % 16;   # blue 180° ahead (position 8)
+    t = sub_frame / sub_frame_count; # Smoother interpolation
+    for (i = 0; i < 4; i++) {
+        if (i == 0) {
+            point = yellow_point;
+        }
+        if (i == 1) {
+            point = green_point;
+        }
+        if (i == 2) {
+            point = red_point;
+        }
+        if (i == 3) {
+            point = blue_point;
+        }
+        next = (point + 15) % 16; # Clockwise
+        x_percent = clock_x_percent[point] + (clock_x_percent[next] - clock_x_percent[point]) * t;
+        y_percent = clock_y_percent[point] + (clock_y_percent[next] - clock_y_percent[point]) * t;
+        x = (x_percent / 100) * screen_width;
+        y = (y_percent / 100) * screen_height;
+        sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+    }
+    if (clock_point == 0 && sub_frame == 0) {
+        # Pause at yellow clock point 0 (starting point)
+        return frame_duration;
+    }
+    sub_frame++;
+    if (sub_frame >= sub_frame_count) {
+        sub_frame = 0;
+        clock_point = (clock_point + 15) % 16; # Clockwise
+    }
+    spin_frame++;
+    return frame_duration;
+}
+
+# Expand animation (move sprites to new positions, change green/yellow images)
+fun animate_expand_display() {
+    t = frame_index / frame_count;
+    # Update green and yellow images every 2 frames
+    image_index = frame_index / 2;
+    if (image_index < 12) {
+        green_sprite.SetImage(green_expand_images[image_index]);
+        yellow_sprite.SetImage(yellow_expand_images[image_index]);
+    }
+    # Move all sprites
+    for (i = 0; i < 6; i++) {
+        x_percent = expand_start_x_percent[i] + (expand_end_x_percent[i] - expand_start_x_percent[i]) * t;
+        y_percent = expand_start_y_percent[i] + (expand_end_y_percent[i] - expand_start_y_percent[i]) * t;
+        x = (x_percent / 100) * screen_width;
+        y = (y_percent / 100) * screen_height;
+        sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+    }
+        if (frame_index >= frame_count) {
+        # Pause at frame 24
+        return frame_duration;
+    }
+    frame_index++;
+    return frame_duration;
+}
+
+# Logo display animation (fade in logo, keep expand sprites stationary)
+fun animate_logo_display() {
+    # Keep expand sprites at final positions every frame
+    green_sprite.SetImage(green_expand_images[11]); # g12.png
+    yellow_sprite.SetImage(yellow_expand_images[11]); # y12.png
+    for (i = 0; i < 6; i++) {
+        x_percent = expand_end_x_percent[i];
+        y_percent = expand_end_y_percent[i];
+        x = (x_percent / 100) * screen_width;
+        y = (y_percent / 100) * screen_height;
+        sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+    }
+    # Fade logo
+    if (frame_index < frame_count) {
+        logo_opacity = frame_index / frame_count; # 0 to 1 over 24 frames
+        frame_index++;
+    } else {
+        logo_opacity = 1; # Ensure fully opaque after fade
+    }
+    x = (27.7604 / 100) * screen_width; # 533 pixels
+    y = (60.0000 / 100) * screen_height; # 648 pixels
+    logo_sprite.SetPosition(x, y, 5); # No PNG offset for logo
+    logo_sprite.SetOpacity(logo_opacity);
+    return frame_duration;
+}
+
+# Animation controller
+fun animate() {
+    if (animation_phase == 0) {
+        animate_transition(1); # Startup converge
+    } else if (animation_phase == 1) {
+        animate_spin(1); # Normal clockwise spin
+    } else if (animation_phase == 2) {
+        animate_spin(-1); # Counter-clockwise spin
+    } else if (animation_phase == 3) {
+        animate_transition(-1); # Diverge
+    } else if (animation_phase == 4) {
+        animate_transition(1); # Converge
+    } else if (animation_phase == 5) {
+        animate_switch_root_spin(); # Switch root clockwise spin with pause
+    } else if (animation_phase == 6) {
+        animate_expand_display(); # Expand animation
+    } else if (animation_phase == 7) {
+        animate_logo_display(); # Logo display
+    }
+    return frame_duration;
+}
+
+# Start animation
+for (i = 0; i < 4; i++) {
+    x = (start_x_percent[i] / 100) * screen_width;
+    y = (start_x_percent[i] / 100) * screen_height;
+    sprites[i].SetPosition(x - (png_offset_x_percent / 100) * screen_width, y - (png_offset_y_percent / 100) * screen_height, sprites[i].GetZ());
+}
+sprites[4].SetPosition(-screen_width, -screen_height, 2); # Initially hide blue silhouette
+sprites[5].SetPosition(-screen_width, -screen_height, 2); # Initially hide red silhouette
+logo_sprite.SetPosition(-screen_width, -screen_height, 5); # Initially hide logo sprite
+logo_sprite.SetOpacity(0);
+Plymouth.SetUpdateStatusFunction(on_status_update);
+Plymouth.SetRefreshFunction(animate);
