@@ -8,6 +8,9 @@ The working February 2025 machine (Batocera 41, live overlays) is archived under
 |---|---|
 | [PLAN.md](../PLAN.md) | Point-by-point plan and session handoff |
 | [disks.md](disks.md) | NVMe + cart labels, mounts, RAID1 |
+| [deploy.md](deploy.md) | `.img.gz` vs `boot.tar.xz`; spare-NVMe `dd`; production later |
+| [testbed-fixlist.md](testbed-fixlist.md) | Open software fixes on the Pi 5 HAT bed — agree before applying |
+| [initialize-keystone.md](initialize-keystone.md) | Parse of `SNES/CustomSNES/initialize/` — what to lift, what to ignore |
 | [hardware.md](hardware.md) | Pi 5, Pimoroni NVMe, GPIO, DAC, pads |
 | [sinden.md](sinden.md) | Sinden / FPS cart — keep guns, cart-carried settings |
 | [satellaview.md](satellaview.md) | Protected per-game BS-X saves (later phase) |

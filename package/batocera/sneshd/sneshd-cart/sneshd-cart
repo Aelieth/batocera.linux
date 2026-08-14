@@ -249,11 +249,17 @@ do_start() {
         umount_dev "$share_dev"
         if ! mount_labeled SHARE "$share_uuid" "$SHARE_OPTS"; then
             log_msg "Critical: cannot mount SHARE"
-            exit 1
+            if ! mountpoint -q /userdata 2>/dev/null; then
+                exit 1
+            fi
+            log_msg "Keeping existing /userdata mount"
         fi
     else
         log_msg "Critical: no SHARE volume"
-        exit 1
+        if ! mountpoint -q /userdata 2>/dev/null; then
+            exit 1
+        fi
+        log_msg "SHARE label missing; /userdata already mounted, continuing admin"
     fi
 
     if [ -n "$snes_dev" ]; then

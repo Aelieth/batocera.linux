@@ -1,6 +1,18 @@
 # Hardware
 
-This is a Pi 5 inside a SNES shell, not a generic SBC image.
+Two machines. Do not mix them up.
+
+## Test bed (current flash)
+
+Plain Pi 5 + official Pi 5 NVMe HAT. All Pi equipment. **Clean software baseline.** No InnoMaker DAC, no SNES GPIO, no Leonardo, no Pimoroni.
+
+- Address (this pass): `10.10.44.191`
+- HDMI only. `allo-boss-dac` in `config.txt` will probe and fail (`pcm512x -11`). **Ignore that here.**
+- Phase 4 (GPIO / HiFi / MSU-1 / 8bitdo) stays parked until the SNES shell is on the bench.
+
+## Production console (later)
+
+Pi 5 inside a SNES shell, not a generic SBC image.
 
 | Piece | Detail |
 |---|---|

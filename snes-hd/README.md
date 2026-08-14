@@ -17,5 +17,5 @@ Git branch: **`snes-hd_initial`**.
 
 `SNES/` is the old live-system archive (including `rootfs.cpio`). It is gitignored. Do not rsync it into the image.
 
-Docs for disks, carts, Plymouth, Sinden, and Satellaview live in [`docs/`](docs/).  
+Docs for disks, carts, Plymouth, Sinden, Satellaview, and **how to flash** live in [`docs/`](docs/) ([deploy.md](docs/deploy.md)).  
 Art lives in [`assets/`](assets/): logos, loading stills, and the `snes-load` Plymouth theme.

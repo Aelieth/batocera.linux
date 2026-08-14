@@ -12,7 +12,7 @@ Last updated: 2026-08-14
 
 1. Open this file.
 2. Skim **1. Status**. Do the next unchecked **implementable** section, not a later-repo item.
-3. Hardware and disk rules: [docs/disks.md](docs/disks.md), [docs/hardware.md](docs/hardware.md).
+3. Hardware and disk rules: [docs/disks.md](docs/disks.md), [docs/hardware.md](docs/hardware.md). Flash: [docs/deploy.md](docs/deploy.md).
 4. Cart session: [docs/cart-manager.md](docs/cart-manager.md).
 5. Initramfs / Plymouth: [docs/plymouth.md](docs/plymouth.md).
 6. Guns: [docs/sinden.md](docs/sinden.md). Satellaview saves: [docs/satellaview.md](docs/satellaview.md).
@@ -41,22 +41,22 @@ Buildroot-facing paths (must stay where they are):
 | `snes-hd/` | Plan, docs, [`assets/`](assets/) (logos, splash, Plymouth) |
 
 Build: `make BATCH_MODE=y PARALLEL_BUILD=y sneshd-build`  
-`buildroot/` submodule is initialized (`059038b33a`). First fat image cancelled; strip applied. **Clean baseline image built 2026-08-14 10:42** (not flashed). Artifact: `output/sneshd/images/batocera/images/sneshd/batocera-bcm2712-sneshd-44-20260814.img.gz` (~676M, md5 `ef6fd4bea773daea625ad0bb38c28f3c`). Kernel 6.18 did **not** fail. Stock Batocera initramfs (`initrd.lz4` ~1M), not snes-load yet. SHARE is BTRFS 512M labeled `SHARE`; OS still squash.
+**Ship vehicle is the `.img.gz`.** This 20260814 image is the baseline we iterate; family / new consoles get `dd` of the current image. `boot.tar.xz` is only for upgrading a disk that already has userdata. Artifact: `output/sneshd/images/batocera/images/sneshd/batocera-bcm2712-sneshd-44-20260814.img.gz` (~676M). Test bed already flashed. Kernel 6.18 did **not** fail. Stock initramfs (`initrd.lz4` ~1M). SHARE is BTRFS (seed 512M, grown on first boot). OS still squash.
 
 ---
 
 ## 1. Status
 
-Honest gap: Phases 1–3 and the theme lift are **in the tree**, not **on the console**. Nothing has been flashed or timed.
+Honest gap: Phase 1 **boots** on the **test bed**. This `.img.gz` is the **baseline we iterate**; family units will `dd` later revisions. DAC / GPIO / HiFi / MSU-1 parked. Applying SHARE software defaults next ([docs/testbed-fixlist.md](docs/testbed-fixlist.md)).
 
 | # | Section | State |
 |---|---|---|
 | A | Product decisions (locked) | Done |
-| B | Phase 0 — spec + docs home | Done (`snes-hd/`) |
-| C | Phase 1 — `sneshd` board | **Clean baseline image 20260814 10:42** (BTRFS SHARE, prune, stubs). Not flashed |
-| D | Phase 2 — SNES-only + ARM64 BSNES | In image (4 cores built); not hardware-verified |
-| E | Phase 3 — cart manager | In tree, not hardware-verified |
-| F | Phase 4 — physical console (GPIO, HiFi, MSU-1) | **Next implementable** |
+| B | Phase 0 — spec + docs home | **Closed.** Docs + first commit on `snes-hd_initial`. See [docs/deploy.md](docs/deploy.md) |
+| C | Phase 1 — `sneshd` board | **Boots on test bed** (plain Pi 5 + Pi HAT, 10.10.44.191). ES 1080p. SHARE 471G btrfs |
+| D | Phase 2 — SNES-only + ARM64 BSNES | In image; **ROM launch is the next check on this box** |
+| E | Phase 3 — cart manager | Scripts in tree; live start failed (SHARE label). Fix in tree, not applied |
+| F | Phase 4 — physical console (GPIO, HiFi, MSU-1) | **Parked** — SNES shell / InnoMaker / GPIO, not this test bed |
 | G | Phase 5 — BTRFS OS root | SHARE-as-BTRFS in tree (transitional); OS still squash |
 | H | Phase 6 — thin uClibc initramfs + `snes-load` | Theme lifted; ramdisk not rebuilt |
 | I | Phase 7 — boot diet + measure | Needs a real image |
@@ -129,14 +129,16 @@ Wall-clock goal: **power → ES < 10s** (NVMe + cart already in, 1080p).
 
 - [x] `SNES/` is reference only; gitignored.
 - [x] Project docs live in `snes-hd/` (this folder).
-- [ ] First real commit of `snes-hd/` + board/package paths (not done yet).
+- [x] First commit of `snes-hd/` + board/package paths (`snes-hd_initial` `f2c0571301`).
+- [x] Deploy artifacts documented: [docs/deploy.md](docs/deploy.md).
 
 ### C. Phase 1 — board
 
 - [x] `configs/batocera-sneshd.board` (BCM2712 kernel, hostname SNES, images → `broadcom/sneshd`).
 - [x] `board/batocera/broadcom/sneshd/` from archive `config.txt` / `cmdline.txt` (PCIe, DAC, underclock, Wi‑Fi/BT off).
 - [x] `make sneshd-build` produces an image. *(2026-08-14 `batocera-bcm2712-sneshd-44-20260814.img.gz`)*
-- [ ] Image boots from Pimoroni NVMe.
+- [x] Spare NVMe flashed with that `.img.gz` (not the production disk). See [docs/deploy.md](docs/deploy.md).
+- [x] Image boots from that spare NVMe on the Pi 5 (board `sneshd`, ES on HDMI-A-2 1920x1080).
 - [ ] `blkid` sees an existing `SNES-*` USB disk.
 
 **Exit:** stock-enough ES on the real Pi 5 from NVMe.
@@ -169,7 +171,7 @@ Wall-clock goal: **power → ES < 10s** (NVMe + cart already in, 1080p).
 
 **Exit:** last machine’s carts work without `/boot/postshare.sh`.
 
-### F. Phase 4 — physical console  ← do this next unless jumping to H
+### F. Phase 4 — physical console  ← parked until SNES shell, not the Pi HAT test bed
 
 Archive scripts: `SNES/powerswitch.py`, `HiFi_audio.py`, `msu1_preload.py`, `99-8bitdo-controller.rules`.
 
@@ -347,6 +349,13 @@ Newest first. One line per accomplishment or failed attempt.
 
 | When | What |
 |---|---|
+| 2026-08-14 | Owner: family / new consoles **`dd` the iterated `.img.gz`**. This 20260814 image is the baseline. Do not `dd` the existing data Pimoroni. [docs/deploy.md](docs/deploy.md) updated. Applied SHARE `es_settings` (no Favorites/All Games, start on snes, carbon/red/us) and keystone `batocera.conf` defaults. ES restarted. Cart `blkid` files on overlay only (lost on reboot) — bake into next image. |
+| 2026-08-14 | Parsed `SNES/CustomSNES/initialize/` as a keystone (not rsync/overlay gospel). Wrote [docs/initialize-keystone.md](docs/initialize-keystone.md). Software we can lift: ES collections off, SNES group, hostname, no updates/shaders/bezels, 1080p ES, schedutil, RA pad hotkeys nul. Skip: overlay rsync, DAC/GPIO/MSU-1, old gl/alsa drivers, hardcoded viewport, `/dev/nvme0n1p3`. |
+| 2026-08-14 | Owner: family games (satellaview, sufami, sgb, sgb-msu1, snes-msu1) display **under SNES** via `group: snes`; core picked from `configgen-defaults-sneshd.yml`. Not separate carousel rows. Do not `snes.ungroup`. Collections (Favorites / All Games) still off. Fix list updated. |
+| 2026-08-14 | Test bed back after reboot. SSH up. Wrote [docs/testbed-fixlist.md](docs/testbed-fixlist.md) **before** applying: ES `CollectionSystemsAuto=""` (no Favorites / All Games); `StartupSystem=snes`; hide gb/gbc/ports; cart `blkid` discovery; hostname seed. No live edits this pass. |
+| 2026-08-14 | Owner: `10.10.44.191` is the **plain Pi 5 + Pi 5 HAT test bed**, all Pi gear. Hold DAC / audio / GPIO / HiFi / MSU-1. `docs/hardware.md` now splits test bed vs production shell. Phase 4 parked. |
+| 2026-08-14 | Live compare `root@10.10.44.191`: our `sneshd` image. ES up. SHARE btrfs resized 512M→471G. 4 cores. No cart. `sneshd-cart` logged `no SHARE volume` (lsblk labels after resize) so `MODE=unknown`; admin ES worked because S11 left `/userdata` mounted. Hostname flipped BATOCERA via datainit `batocera.conf`. ES still lists gb/gbc/ports (mesen-s). DAC overlay loads; `pcm512x 1-004d` probe -11, HDMI only. Cart discovery rewritten to `blkid -s`. **Do not run `sneshd-cart start` over SSH** — it umounts SHARE and kills dropbear (`/userdata/system`). A live apply did that; remount `LABEL=SHARE` on `/userdata` from the console, then scp the fixed scripts. |
+| 2026-08-14 | Phase 0 **closed**. Stale “first commit” box checked (`f2c0571301`). `docs/disks.md` no longer claims ext4 SHARE. New [docs/deploy.md](docs/deploy.md): spare NVMe `dd`s the `.img.gz`; `boot.tar.xz` is the update/production bundle; no ISO; production disk not flashed. |
 | 2026-08-14 | Cherry-picked [PR #16244](https://github.com/batocera-linux/batocera.linux/pull/16244) (`48c26629ee`) onto `snes-hd_initial`: auto-pair no longer reconnects already-paired pads. Official PR still open. |
 | 2026-08-14 | Merged official `upstream/master` (10 commits, Aelieth had none unique) into `snes-hd_initial`. Includes [PR #16199](https://github.com/batocera-linux/batocera.linux/pull/16199) bluetooth pairing rewrite. Only conflict: `.gitignore` (`*.mo` + our SNES-HD ignores). Aelieth `origin/master` still at `859e5d906a`. |
 | 2026-08-14 | Branch **`snes-hd_initial`**: first commit of board, packages, scripts, docs, and `snes-hd/assets/{logos,splash,plymouth}`. Archive `SNES/` and `*.cpio` stay gitignored. |

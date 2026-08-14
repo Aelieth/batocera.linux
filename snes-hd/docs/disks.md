@@ -12,7 +12,7 @@ Pimoroni NVMe Base, `nvme0n1`.
 | p2 | BTRFS | `SHARE` | Admin userdata. `/media/SHARE`. `/userdata` when no cart. |
 | p3 | BTRFS | `SNES` | Console extras, cart theme cache, later backups. `/media/SNES`. |
 
-First image (`…-20260814.img.gz`) still has **ext4 SHARE** (lean `S11` will fail that mount and fall back to tmpfs). Next images: FAT boot + **BTRFS SHARE** (512M seed, `autoresize` grows it). OS root stays squash until Phase 5. Partition 3 (`SNES`) is not in genimage yet.
+Clean baseline (`…-20260814.img.gz`) is FAT `BATOCERA` (6G, ~662M of files) + **BTRFS SHARE** (512M seed, label `SHARE`). `S11share` mounts that label as btrfs. `autoresize=true` grows SHARE on first boot. OS root stays squash until Phase 5. Partition 3 (`SNES`) is **not** in this genimage — production three-partition layout is a later `sneshd-install`, not this test image. How to flash: [deploy.md](deploy.md).
 
 ## USB3 SSD (the cartridge)
 

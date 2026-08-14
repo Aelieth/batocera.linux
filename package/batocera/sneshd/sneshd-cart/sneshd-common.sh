@@ -99,39 +99,58 @@ yank_enabled() {
 }
 
 # Populate share_*/snes_*/cart_*/saves_* from BTRFS labels. No /dev/sd* tests.
+# Use blkid (superblock). lsblk udev labels can be empty right after resize.
 discover_volumes() {
     share_label=""; share_uuid=""; share_dev=""
     snes_label=""; snes_uuid=""; snes_dev=""
     cart_label=""; cart_uuid=""; cart_dev=""; cart_id=""; cart_raid=0
     saves_label=""; saves_uuid=""; saves_dev=""
 
-    local name label uuid fstype type
-    while IFS= read -r name label uuid fstype type; do
+    local dev label uuid fstype
+    while IFS= read -r line; do
+        case "$line" in
+            /dev/*:*) ;;
+            *) continue ;;
+        esac
+        dev="${line%%:*}"
+        fstype=$(blkid -s TYPE -o value "$dev" 2>/dev/null)
         [ "$fstype" = "btrfs" ] || continue
-        [ "$type" = "part" ] || continue
+        label=$(blkid -s LABEL -o value "$dev" 2>/dev/null)
+        uuid=$(blkid -s UUID -o value "$dev" 2>/dev/null)
+        [ -n "$label" ] || continue
         case "$label" in
             SHARE)
-                share_label="$label"; share_uuid="$uuid"; share_dev="$name"
+                share_label="$label"; share_uuid="$uuid"; share_dev="$dev"
                 ;;
             SNES)
-                snes_label="$label"; snes_uuid="$uuid"; snes_dev="$name"
+                snes_label="$label"; snes_uuid="$uuid"; snes_dev="$dev"
                 ;;
             SNES-*)
                 if [ -z "$cart_label" ]; then
                     cart_label="$label"
                     cart_uuid="$uuid"
-                    cart_dev="$name"
+                    cart_dev="$dev"
                     cart_id="${label#SNES-}"
                 elif [ "$uuid" = "$cart_uuid" ]; then
-                    cart_dev="$cart_dev $name"
+                    cart_dev="$cart_dev $dev"
                     cart_raid=1
                 else
-                    log_msg "Ignoring extra cart $label on $name (already using $cart_label)"
+                    log_msg "Ignoring extra cart $label on $dev (already using $cart_label)"
                 fi
                 ;;
             SAVES)
-                saves_label="$label"; saves_uuid="$uuid"; saves_dev="$name"
+                saves_label="$label"; saves_uuid="$uuid"; saves_dev="$dev"
                 ;;
         esac
-    done < <(lsblk -nrpo NAME,LABEL,UUID,FSTYPE,TYPE 2>/dev/null)
+    done < <(blkid 2>/dev/null)
+
+    # S11 may already have SHARE at /userdata before udev refreshes labels.
+    if [ -z "$share_dev" ] && mountpoint -q /userdata 2>/dev/null; then
+        dev=$(findmnt -n -o SOURCE /userdata 2>/dev/null)
+        if [ -n "$dev" ] && [ "$(blkid -s LABEL -o value "$dev" 2>/dev/null)" = "SHARE" ]; then
+            share_dev="$dev"
+            share_uuid=$(blkid -s UUID -o value "$dev" 2>/dev/null)
+            share_label="SHARE"
+        fi
+    fi
 }

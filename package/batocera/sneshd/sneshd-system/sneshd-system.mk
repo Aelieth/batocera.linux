@@ -12,6 +12,8 @@ SNESHD_SYSTEM_DEPENDENCIES = retroarch libretro-bsnes libretro-bsnes-hd \
 define SNESHD_SYSTEM_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0644 $(SNESHD_SYSTEM_PKGDIR)/retroarch-core-options.cfg \
 		$(TARGET_DIR)/usr/share/batocera/datainit/system/configs/retroarch/cores/retroarch-core-options.cfg
+	$(INSTALL) -D -m 0644 $(SNESHD_SYSTEM_PKGDIR)/es_settings.cfg \
+		$(TARGET_DIR)/usr/share/batocera/datainit/system/configs/emulationstation/es_settings.cfg
 endef
 
 # Datainit prune (kodi / ports / gb / gbc) lives in

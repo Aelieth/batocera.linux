@@ -152,4 +152,67 @@ if grep -qE '^BR2_PACKAGE_BATOCERA_SNESHD=y$' "${BR2_CONFIG}"; then
            "${TARGET_DIR}/usr/share/batocera/datainit/roms/ports" \
            "${TARGET_DIR}/usr/share/batocera/datainit/roms/gb" \
            "${TARGET_DIR}/usr/share/batocera/datainit/roms/gbc"
+    # S26 reads SHARE batocera.conf after S12 seeds it; keep console name.
+    CONF="${TARGET_DIR}/usr/share/batocera/datainit/system/batocera.conf"
+    if [ -f "${CONF}" ]; then
+        set_conf() {
+            local key="$1" val="$2"
+            if grep -qE "^#?${key}=" "${CONF}"; then
+                sed -i "s|^#\\?${key}=.*|${key}=${val}|" "${CONF}"
+            else
+                echo "${key}=${val}" >> "${CONF}"
+            fi
+        }
+        set_conf system.hostname SNES
+        set_conf system.timezone America/Chicago
+        set_conf system.language en_US
+        set_conf wifi.enabled 0
+        set_conf system.samba.enabled 0
+        set_conf kodi.enabled 0
+        set_conf kodi.atstartup 0
+        set_conf kodi.xbutton 0
+        set_conf splash.screen.enabled 0
+        set_conf splash.screen.sound 0
+        set_conf updates.enabled 0
+        set_conf global.shaderset none
+        set_conf global.bezel none
+        set_conf system.cec.standby 0
+        set_conf es.resolution max-1920x1080
+        set_conf system.cpu.governor schedutil
+        set_conf audio.bgmusic 1
+        if ! grep -q '^global.retroarch.input_menu_toggle_btn' "${CONF}"; then
+            cat >> "${CONF}" <<'EOF'
+
+# SNES-HD: pad cannot open RetroArch menu / savestate / exit
+global.retroarch.input_screenshot_btn=nul
+global.retroarch.input_hold_fast_forward_btn=nul
+global.retroarch.input_rewind_btn=nul
+global.retroarch.input_load_state_btn=nul
+global.retroarch.input_save_state_btn=nul
+global.retroarch.input_reset_btn=nul
+global.retroarch.input_exit_emulator_btn=nul
+global.retroarch.input_menu_toggle_btn=nul
+global.retroarch.input_enable_hotkey_btn=nul
+global.retroarch.menu_swap_ok_cancel_buttons=true
+global.retroarch.input_max_users=4
+EOF
+        fi
+    fi
+    # mesen-s also advertises gb/gbc; drop those systems from ES.
+    if [ -f "${TARGET_DIR}/usr/share/emulationstation/es_systems.cfg" ]; then
+        python3 - "${TARGET_DIR}/usr/share/emulationstation/es_systems.cfg" <<'PY'
+import sys
+from xml.etree import ElementTree as ET
+path = sys.argv[1]
+keep = {"snes", "snes-msu1", "satellaview", "sufami", "sgb", "sgb-msu1",
+        "imageviewer", "library", "recordings"}
+tree = ET.parse(path)
+root = tree.getroot()
+for sys in list(root.findall("system")):
+    name = sys.findtext("name")
+    if name not in keep:
+        root.remove(sys)
+tree.write(path, encoding="utf-8", xml_declaration=True)
+PY
+    fi
 fi
