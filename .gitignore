@@ -34,6 +34,7 @@ batocera-mok.key
 typescript
 .ruff_cache
 .coverage
+*.mo
 
 # SNES-HD archive and ramdisk dumps — not committed
 /SNES/
