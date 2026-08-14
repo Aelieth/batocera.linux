@@ -347,7 +347,8 @@ Newest first. One line per accomplishment or failed attempt.
 
 | When | What |
 |---|---|
-| 2026-08-14 | Merged official `upstream/master` (10 commits, Aelieth had none unique) into `snes-hd_initial`. Includes [PR #16199](https://github.com/batocera-linux/batocera.linux/pull/16199) bluetooth pairing rewrite. Only conflict: `.gitignore` (`*.mo` + our SNES-HD ignores). Open follow-up [PR #16244](https://github.com/batocera-linux/batocera.linux/pull/16244) not merged yet (auto-pair already-paired pads). Aelieth `origin/master` still at `859e5d906a`. |
+| 2026-08-14 | Cherry-picked [PR #16244](https://github.com/batocera-linux/batocera.linux/pull/16244) (`48c26629ee`) onto `snes-hd_initial`: auto-pair no longer reconnects already-paired pads. Official PR still open. |
+| 2026-08-14 | Merged official `upstream/master` (10 commits, Aelieth had none unique) into `snes-hd_initial`. Includes [PR #16199](https://github.com/batocera-linux/batocera.linux/pull/16199) bluetooth pairing rewrite. Only conflict: `.gitignore` (`*.mo` + our SNES-HD ignores). Aelieth `origin/master` still at `859e5d906a`. |
 | 2026-08-14 | Branch **`snes-hd_initial`**: first commit of board, packages, scripts, docs, and `snes-hd/assets/{logos,splash,plymouth}`. Archive `SNES/` and `*.cpio` stay gitignored. |
 | 2026-08-14 | **Clean baseline image built** 10:42: `output/sneshd/images/batocera/images/sneshd/batocera-bcm2712-sneshd-44-20260814.img.gz` (~676M, md5 `ef6fd4bea773daea625ad0bb38c28f3c`). Uncompressed 6980370432: FAT 6GiB + BTRFS SHARE 512MiB label `SHARE` (`_BHRfS_M`). squash 656M, Image 25M, initrd.lz4 1.0M. Datainit: SNES family only. Not flashed. |
 | 2026-08-14 | First post-image-fixed rebuild produced an image, but datainit prune in `sneshd-system.mk` lost to per-package rsync. Moved prune to `post-build-script.sh` (SNESHD-gated). Rebuilt. |
